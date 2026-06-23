@@ -18,7 +18,6 @@ grades = {
 
 posts = []
 
-#  HOME
 @app.route("/")
 def home():
     if "user" not in session:
