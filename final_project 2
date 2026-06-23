@@ -1,0 +1,215 @@
+from flask import Flask, render_template, request, redirect, session
+
+app = Flask(__name__)
+app.secret_key = "school_app_secret"
+
+
+users = {}
+
+# data 
+subjects = ["math", "georgian", "english"]
+
+grades = {
+    "math": 10,
+    "georgian": 9,
+    "english": 8
+}
+
+
+posts = []
+
+# 🏠 HOME
+@app.route("/")
+def home():
+    if "user" not in session:
+        return redirect("/login")
+
+    return render_template("home.html",
+                           user=session["user"],
+                           subjects=subjects,
+                           grades=grades,
+                           posts=posts)
+
+
+@app.route("/register", methods=["GET", "POST"])
+def register():
+    if request.method == "POST":
+        username = request.form["username"]
+        password = request.form["password"]
+
+        users[username] = password
+        return redirect("/login")
+
+    return render_template("register.html")
+
+
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    if request.method == "POST":
+        username = request.form["username"]
+        password = request.form["password"]
+
+        if username in users and users[username] == password:
+            session["user"] = username
+            return redirect("/")
+
+    return render_template("login.html")
+
+
+@app.route("/logout")
+def logout():
+    session.pop("user", None)
+    return redirect("/login")
+
+
+@app.route("/post", methods=["POST"])
+def add_post():
+    text = request.form["text"]
+
+    posts.append({
+        "user": session["user"],
+        "text": text,
+        "likes": 0
+    })
+
+    return redirect("/")
+
+@app.route("/like/<int:index>")
+def like(index):
+    posts[index]["likes"] += 1
+    return redirect("/")
+
+
+@app.route("/profile")
+def profile():
+    if "user" not in session:
+        return redirect("/login")
+
+    return render_template("profile.html", user=session["user"])
+
+if __name__ == "__main__":
+    app.run(debug=True)
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>School App</title>
+
+    <style>
+        body {
+            background: #f2f2f2;
+        }
+
+        .box {
+            background: white;
+            padding: 15px;
+            margin: 10px;
+            border-radius: 10px;
+        }
+
+        .nav {
+            background: #4a4ae6;
+            padding: 10px;
+            color: white;
+        }
+
+        button {
+            padding: 8px;
+            border: none;
+            background: #4a4ae6;
+            color: white;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="nav">
+     School App |
+    <a href="/" style="color:white;">Home</a> |
+    <a href="/profile" style="color:white;">Profile</a> |
+    <a href="/logout" style="color:white;">Logout</a>
+</div>
+
+{% block content %}{% endblock %}
+
+</body>
+</html>
+
+{% extends "base.html" %}
+
+{% block content %}
+
+<h2 class="box">hi {{ user }}</h2>
+
+<!-- subject -->
+<div class="box">
+    <h3>grades and</h3>
+
+    {% for s in subjects %}
+        <p>{{ s }} — {{ grades[s] }}</p>
+    {% endfor %}
+</div>
+
+<!-- add posts -->
+<div class="box">
+    <h3>wrote posts</h3>
+
+    <form method="post" action="/post">
+        <input name="text" placeholder="what you think" />
+        <button>Post</button>
+    </form>
+</div>
+
+<!-- posts -->
+<div class="box">
+    <h3>posts</h3>
+
+    {% for p in posts %}
+        <div style="border:1px solid #ddd; padding:10px; margin:10px;">
+            <b>{{ p.user }}</b>
+            <p>{{ p.text }}</p>
+
+             {{ p.likes }}
+            <a href="/like/{{ loop.index0 }}">Like</a>
+        </div>
+    {% endfor %}
+</div>
+
+{% endblock %}
+
+<h1>Join School App</h1>
+
+<form method="post">
+    <input name="username" placeholder="username"><br><br>
+    <input name="password" type="password" placeholder="password"><br><br>
+
+    <button>Create Account</button>
+</form>
+
+<a href="/login">Already have account?</a>
+
+<h1>
+Login</h1>
+
+<form method="post">
+    <input name="username"><br><br>
+    <input name="password" type="password"><br><br>
+
+    <button>Enter</button>
+</form>
+
+<a href="/register">Register</a>
+
+
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="box">
+    <h1>profile</h1>
+    <p>name: {{ user }}</p>
+</div>
+
+{% endblock %}
